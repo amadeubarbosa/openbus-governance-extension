@@ -1,11 +1,11 @@
 local oo = require "openbus.util.oo"
 local idl = require "openbus.services.governance.idl"
-local ContractsType = idl.types.Contract
-local ContractsRegistryType = idl.types.ContractsRegistry
+local ContractType = idl.types.Contract
+local ContractRegistryType = idl.types.ContractRegistry
 
 -- Contract
 local Contract = oo.class{
-  __type = ContractsType,
+  __type = ContractType,
 }
 function Contract:__init() 
   assert(self.name)
@@ -25,33 +25,33 @@ function Contract:removeInterface(repid)
   self._interfaces[repid] = nil
 end
 
--- Contracts Registry
-local ContractsRegistry = oo.class{
-  __type = ContractsRegistryType,
-  __objkey = "ContractsRegistry",
+-- Contract Registry
+local ContractRegistry = oo.class{
+  __type = ContractRegistryType,
+  __objkey = "ContractRegistry",
 }
-function ContractsRegistry:__init()
+function ContractRegistry:__init()
   self._contracts = {}
 end
-function ContractsRegistry:_get_contracts()
+function ContractRegistry:_get_contracts()
   local result = {}
   for name, contract in pairs(self._contracts) do
     result[#result+1] = contract
   end
   return result
 end
-function ContractsRegistry:get(name)
+function ContractRegistry:get(name)
   return self._contracts[name]
 end
-function ContractsRegistry:add(name)
+function ContractRegistry:add(name)
   local contract = Contract{name = name}
   self._contracts[name] = contract
   return contract
 end
-function ContractsRegistry:remove(name)
+function ContractRegistry:remove(name)
   local result = self._contracts[name]
   self._contracts[name] = nil
   return result
 end
 
-return ContractsRegistry
+return ContractRegistry

@@ -10,7 +10,7 @@ require "openbus.test.util"
 
 setorbcfg(orbsecurity, true) -- able to configure ssl
 
-OpenBusFixture = cached.class({}, Fixture)
+local OpenBusFixture = cached.class({}, Fixture)
 
 function OpenBusFixture:setup()
   self.orb = openbus.initORB(orbcfg and table.copy(orbcfg))

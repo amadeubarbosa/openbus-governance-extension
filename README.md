@@ -45,12 +45,12 @@ It'll use a OpenBus instance at `localhost:2089` and it'll search for `Governanc
 You'll get a report about the test completion like this:
 ```
 OpenBus Governance Extension Suite ... 
-  OpenBus Governance Extension Suite.ContractsRegistry ... 
-    OpenBus Governance Extension Suite.ContractsRegistry.setup ... OK (2.00 sec.)
-    OpenBus Governance Extension Suite.ContractsRegistry ... 
-      OpenBus Governance Extension Suite.ContractsRegistry.AddContract ... OK (0.00 sec.)
+  OpenBus Governance Extension Suite.ContractRegistry ... 
+    OpenBus Governance Extension Suite.ContractRegistry.setup ... OK (2.00 sec.)
+    OpenBus Governance Extension Suite.ContractRegistry ... 
+      OpenBus Governance Extension Suite.ContractRegistry.AddContract ... OK (0.00 sec.)
     OK (0.00 sec.)
-    OpenBus Governance Extension Suite.ContractsRegistry.teardown ... OK (0.00 sec.)
+    OpenBus Governance Extension Suite.ContractRegistry.teardown ... OK (0.00 sec.)
   OK (2.00 sec.)
 OK (2.00 sec.)
 Success Rate: 100% (3 of 3 executions)

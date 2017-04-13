@@ -4,23 +4,23 @@ local cached = require "loop.cached"
 
 local OpenBusFixture = require "openbus.test.fixture"
 
-ContractsFixture = cached.class({}, OpenBusFixture)
+ContractFixture = cached.class({}, OpenBusFixture)
 
-function ContractsFixture:setup(...)
+function ContractFixture:setup(...)
   OpenBusFixture.setup(self,...)
-  self.ContractsRegistry = assert(self.governance:getFacetByName("ContractsRegistry"):__narrow())
+  self.ContractRegistry = assert(self.governance:getFacetByName("ContractRegistry"):__narrow())
 end
 
-function ContractsFixture:teardown(...)
-  self.ContractsRegistry = nil
+function ContractFixture:teardown(...)
+  self.ContractRegistry = nil
   OpenBusFixture.teardown(self,...)
 end
 
 return 
-  ContractsFixture{
+  ContractFixture{
     Suite{
       AddContract = function(fixture)
-        local AllContracts = {
+        local AllContract = {
           ["Navigation"] = {
             "IDL:example/data_service/IHierarchicalNavigation:1.0",
             "IDL:example/data_service/IHierarchicalManagement:1.0",
@@ -32,11 +32,11 @@ return
             "IDL/example/opendreams/ISimulationMonitoring:1.0",
           },
         }
-        local before = fixture.ContractsRegistry:_get_contracts()
+        local before = fixture.ContractRegistry:_get_contracts()
         checks.like(before, {})
 
-        for name, interfaces in pairs(AllContracts) do
-          local contract = fixture.ContractsRegistry:add(name)
+        for name, interfaces in pairs(AllContract) do
+          local contract = fixture.ContractRegistry:add(name)
           before[#before+1] = contract
           -- empty interfaces
           checks.like(contract:_get_interfaces(), {})
@@ -52,13 +52,13 @@ return
           checks.like(contract:_get_interfaces(), {})
         end
 
-        local after = fixture.ContractsRegistry:_get_contracts()
+        local after = fixture.ContractRegistry:_get_contracts()
         checks.like(after, before)
 
-        for name in pairs(AllContracts) do
-          assert(fixture.ContractsRegistry:remove(name))
+        for name in pairs(AllContract) do
+          assert(fixture.ContractRegistry:remove(name))
         end
-        checks.like(fixture.ContractsRegistry:_get_contracts(), {})
+        checks.like(fixture.ContractRegistry:_get_contracts(), {})
       end,
   }
 }

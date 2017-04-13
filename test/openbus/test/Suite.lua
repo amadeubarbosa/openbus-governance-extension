@@ -2,7 +2,7 @@ local Suite = require "loop.test.Suite"
 
 local Cases = {}
 for _, name in ipairs{ 
-	"ContractsRegistry",
+	"ContractRegistry",
 	--[["ProviderRegistry",
 	"ConsumerRegistry",
 	"IntegrationRegistry",]]

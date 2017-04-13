@@ -31,7 +31,7 @@ interface Contract {
 };
 typedef sequence<Contract> ContractSeq;
 
-interface ContractsRegistry {
+interface ContractRegistry {
 	readonly attribute ContractSeq contracts;
 	Contract get(in string name);
 	Contract add(in string name);

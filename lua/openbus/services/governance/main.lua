@@ -15,7 +15,7 @@ local ServiceFailure = coreidl.throw.services.ServiceFailure
 local sysex = require "openbus.util.sysex"
 local NO_PERMISSION = sysex.NO_PERMISSION
 
-local ContractsRegistry = require "openbus.services.governance.ContractsRegistry"
+local ContractRegistry = require "openbus.services.governance.ContractRegistry"
 local governanceidl = require "openbus.services.governance.idl"
 local ServiceName = governanceidl.const.ServiceName
 
@@ -106,7 +106,7 @@ do -- server creation
       name = ServiceName,
       objkey = ServiceName,
       facets = {
-          ContractsRegistry = ContractsRegistry(),
+          ContractRegistry = ContractRegistry(),
       },
       shutdown = function(self)
         local caller = OpenBusContext:getCallerChain().caller
