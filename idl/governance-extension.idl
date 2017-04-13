@@ -1,0 +1,103 @@
+/**
+ * \mainpage Documentação das interfaces do serviço de governança estendida
+ */
+#ifndef __TECGRAF_OPENBUS_SERVICES_GOVERNANCE_V10_IDL__
+#define __TECGRAF_OPENBUS_SERVICES_GOVERNANCE_V10_IDL__
+
+/** \brief Módulo dos sistemas e aplicações do Tecgraf. */
+module tecgraf {
+
+/** \brief Módulo do middleware OpenBus. */
+module openbus {
+
+/** \brief Módulo de definições de serviços do OpenBus. */
+module services {
+
+/** \brief Módulo do Serviço de Governança Estendida do OpenBus. */
+module governance {
+
+/* \brief Módulo de versionamento da extensão do OpenBus. */
+module v1_0 {
+
+const string ServiceName = "GovernanceExtensionService";
+
+typedef sequence<string> StrSeq;
+
+interface Contract {
+	readonly attribute string name;
+	readonly attribute StrSeq interfaces;
+	void addInterface(in string interfaceId);
+	void removeInterface(in string interfaceId);
+};
+typedef sequence<Contract> ContractSeq;
+
+interface ContractsRegistry {
+	readonly attribute ContractSeq contracts;
+	Contract get(in string name);
+	Contract add(in string name);
+	Contract remove(in string name);
+};
+
+interface Provider {
+	attribute string name;
+	attribute string code;
+	attribute string office;
+	attribute StrSeq support;
+	attribute StrSeq manager;
+	attribute string busquery;
+	readonly attribute ContractSeq contracts;
+	boolean addContract(in string name);
+	boolean removeContract(in string name);
+};
+typedef sequence<Provider> ProviderSeq;
+
+interface ProviderRegistry {
+	readonly attribute ProviderSeq providers;
+	Provider get(in string name);
+	Provider add(in string name);
+	Provider remove(in string name);
+};
+
+interface Consumer {
+	attribute string name;
+	attribute string code;
+	attribute string office;
+	attribute StrSeq support;
+	attribute StrSeq manager;
+	attribute string busquery;
+};
+typedef sequence<Consumer> ConsumerSeq;
+
+interface ConsumerRegistry {
+	readonly attribute ConsumerSeq consumers;
+	Consumer get(in string name);
+	Consumer add(in string name);
+	Consumer remove(in string name);
+};
+
+interface Integration {
+	readonly attribute long id;
+	attribute Consumer consumer;
+	attribute Provider provider;
+	attribute ContractSeq contracts;
+	attribute boolean activated;
+};
+typedef sequence<Integration> IntegrationSeq;
+
+interface IntegrationRegistry {
+	readonly attribute IntegrationSeq integrations;
+	Integration add();
+	Integration remove(in long id);
+};
+
+}; // services
+
+}; // extension version
+
+}; // extension
+
+}; // openbus
+
+}; // tecgraf
+
+#endif
