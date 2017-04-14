@@ -21,11 +21,11 @@ module v1_0 {
 
 const string ServiceName = "GovernanceExtensionService";
 
-typedef sequence<string> StrSeq;
+typedef sequence<string> StringSeq;
 
 interface Contract {
 	readonly attribute string name;
-	readonly attribute StrSeq interfaces;
+	readonly attribute StringSeq interfaces;
 	void addInterface(in string interfaceId);
 	void removeInterface(in string interfaceId);
 };
@@ -42,8 +42,8 @@ interface Provider {
 	attribute string name;
 	attribute string code;
 	attribute string office;
-	attribute StrSeq support;
-	attribute StrSeq manager;
+	attribute StringSeq support;
+	attribute StringSeq manager;
 	attribute string busquery;
 	readonly attribute ContractSeq contracts;
 	boolean addContract(in string name);
@@ -62,8 +62,8 @@ interface Consumer {
 	attribute string name;
 	attribute string code;
 	attribute string office;
-	attribute StrSeq support;
-	attribute StrSeq manager;
+	attribute StringSeq support;
+	attribute StringSeq manager;
 	attribute string busquery;
 };
 typedef sequence<Consumer> ConsumerSeq;

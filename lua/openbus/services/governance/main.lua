@@ -1,5 +1,5 @@
 local oil     = require "oil"
-local oillog = require "oil.verbose"
+local oillog  = require "oil.verbose"
 local oo      = require "openbus.util.oo"
 local ComponentContext = require "scs.core.ComponentContext"
 
@@ -16,6 +16,7 @@ local sysex = require "openbus.util.sysex"
 local NO_PERMISSION = sysex.NO_PERMISSION
 
 local ContractRegistry = require "openbus.services.governance.ContractRegistry"
+local ProviderRegistry = require "openbus.services.governance.ProviderRegistry"
 local governanceidl = require "openbus.services.governance.idl"
 local ServiceName = governanceidl.const.ServiceName
 
@@ -107,6 +108,7 @@ do -- server creation
       objkey = ServiceName,
       facets = {
           ContractRegistry = ContractRegistry(),
+          ProviderRegistry = ProviderRegistry(),
       },
       shutdown = function(self)
         local caller = OpenBusContext:getCallerChain().caller

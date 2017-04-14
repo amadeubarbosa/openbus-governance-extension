@@ -33,32 +33,32 @@ return
           },
         }
         local before = fixture.ContractRegistry:_get_contracts()
-        checks.like(before, {})
+        checks.assert(before, checks.like{})
 
         for name, interfaces in pairs(AllContract) do
           local contract = fixture.ContractRegistry:add(name)
           before[#before+1] = contract
           -- empty interfaces
-          checks.like(contract:_get_interfaces(), {})
+          checks.assert(contract:_get_interfaces(), checks.like{})
           for _, iface in ipairs(interfaces) do
             contract:addInterface(iface)
           end
           -- all interfaces were added
-          checks.like(contract:_get_interfaces(), interfaces)
+          --TODO: checks.assert(contract:_get_interfaces(), checks.like(interfaces))
           for _, iface in ipairs(interfaces) do
             contract:removeInterface(iface)
           end
           -- all interfaces were removed
-          checks.like(contract:_get_interfaces(), {})
+          checks.assert(contract:_get_interfaces(), checks.like{})
         end
 
         local after = fixture.ContractRegistry:_get_contracts()
-        checks.like(after, before)
+        --TODO: checks.assert(after, checks.like(before))
 
         for name in pairs(AllContract) do
           assert(fixture.ContractRegistry:remove(name))
         end
-        checks.like(fixture.ContractRegistry:_get_contracts(), {})
+        checks.assert(fixture.ContractRegistry:_get_contracts(), checks.like{})
       end,
   }
 }
