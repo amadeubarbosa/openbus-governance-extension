@@ -83,15 +83,14 @@ return
       end,
       ConsistencyChangesProvider = function(fixture)
         local AllContracts = {
-          "Navigation",
-          "Batch Execution"
+          ["Navigation"] = false,
+          ["Batch Execution"] = false,
         }
         local before = fixture.ProviderRegistry:_get_providers()
         checks.assert(before, checks.like{})
 
         local provider = fixture.ProviderRegistry:add("AnyProvider")
-        before[#before+1] = provider
-        for _, name in pairs(AllContracts) do
+        for name in pairs(AllContracts) do
           assert(provider:addContract(name))
         end
         provider:_set_code("BUGGYAPP")
@@ -101,11 +100,19 @@ return
         provider:_set_busquery("offer.entity == 'buggy_development'")
 
         local updated = fixture.ProviderRegistry:get("AnyProvider")
-        checks.assert(updated:_get_code(), checks.is("BUGGYAPP"))
-        checks.assert(updated:_get_office(), checks.is("Tecgraf/Engdist/OpenBus"))
-        checks.assert(updated:_get_support(), checks.like({"users@tecgraf"}))
-        checks.assert(updated:_get_manager(), checks.like({"openbus-dev@tecgraf"}))
-        checks.assert(updated:_get_busquery(), checks.is("offer.entity == 'buggy_development'"))
+        checks.assert(updated:_get_code(), checks.is(provider:_get_code()))
+        checks.assert(updated:_get_office(), checks.is(provider:_get_office()))
+        checks.assert(updated:_get_support(), checks.like(provider:_get_support()))
+        checks.assert(updated:_get_manager(), checks.like(provider:_get_manager()))
+        checks.assert(updated:_get_busquery(), checks.is(provider:_get_busquery()))
+        for _, c in ipairs(updated:_get_contracts()) do
+          local name = c:_get_name()
+          checks.assert(AllContracts[name], checks.equal(false, "invalid value in AllContracts['"..name.."']"))
+          AllContracts[name] = true
+        end
+        for _, verified in pairs(AllContracts) do
+          checks.assert(verified, checks.equal(true, "some error put new values to original AllContracts test table"))
+        end
 
         assert(fixture.ProviderRegistry:remove(updated:_get_name()))
         local after = fixture.ProviderRegistry:_get_providers()
