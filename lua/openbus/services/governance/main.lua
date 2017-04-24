@@ -18,6 +18,7 @@ local NO_PERMISSION = sysex.NO_PERMISSION
 local ContractRegistry = require "openbus.services.governance.ContractRegistry"
 local ProviderRegistry = require "openbus.services.governance.ProviderRegistry"
 local ConsumerRegistry = require "openbus.services.governance.ConsumerRegistry"
+local IntegrationRegistry = require "openbus.services.governance.IntegrationRegistry"
 local governanceidl = require "openbus.services.governance.idl"
 local ServiceName = governanceidl.const.ServiceName
 
@@ -111,6 +112,7 @@ do -- server creation
           ContractRegistry = ContractRegistry(),
           ProviderRegistry = ProviderRegistry(),
           ConsumerRegistry = ConsumerRegistry(),
+          IntegrationRegistry = IntegrationRegistry(),
       },
       shutdown = function(self)
         local caller = OpenBusContext:getCallerChain().caller

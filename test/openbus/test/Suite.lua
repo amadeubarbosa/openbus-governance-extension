@@ -5,7 +5,7 @@ for _, name in ipairs{
 	"ContractRegistry",
 	"ProviderRegistry",
 	"ConsumerRegistry",
-	--[["IntegrationRegistry",]]
+	"IntegrationRegistry",
 } do
 	Cases[name] = require ("openbus.test.services.governance."..name)
 end
