@@ -53,13 +53,15 @@ return
         checks.assert(before, checks.like{})
 
         local consumer = fixture.ConsumerRegistry:add("AnyConsumer")
+        consumer:_set_name("AnyNewConsumerName")
         consumer:_set_code("BUGGYAPP")
         consumer:_set_office("Tecgraf/Engdist/OpenBus")
         consumer:_set_support({"users@tecgraf"})
         consumer:_set_manager({"openbus-dev@tecgraf"})
         consumer:_set_busquery("offer.entity == 'buggy_development'")
 
-        local updated = fixture.ConsumerRegistry:get("AnyConsumer")
+        local updated = fixture.ConsumerRegistry:get("AnyNewConsumerName")
+        checks.assert(updated:_get_name(), checks.is(consumer:_get_name()))
         checks.assert(updated:_get_code(), checks.is(consumer:_get_code()))
         checks.assert(updated:_get_office(), checks.is(consumer:_get_office()))
         checks.assert(updated:_get_support(), checks.like(consumer:_get_support()))

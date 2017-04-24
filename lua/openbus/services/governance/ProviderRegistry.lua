@@ -23,7 +23,12 @@ function Provider:__init()
 end
 function Provider:_set_name(name)
   log:action(msg.UpdatedProviderName:tag{oldname=self.name, newname=name})
+  self.context.ProviderRegistry._providers[self.name] = nil
+  self.context.ProviderRegistry._providers[name] = self
   self.name = name
+end
+function Provider:_get_name()
+  return self.name
 end
 function Provider:_set_code(code)
   log:action(msg.UpdatedProviderCode:tag{oldcode=self.code, newcode=code})
@@ -69,10 +74,7 @@ function ProviderRegistry:get(name)
   return self._providers[name]
 end
 function ProviderRegistry:add(name)
-  local provider = Provider{
-                      context = self.context,
-                      name = name
-                   }
+  local provider = Provider{context = self.context, name = name}
   self._providers[name] = provider
   return provider
 end

@@ -31,10 +31,11 @@ function ProviderFixture:setup(...)
 end
 
 function ProviderFixture:teardown(...)
-  self.ProviderRegistry = nil
   for _, contract in ipairs(self.ContractRegistry:_get_contracts()) do
     self.ContractRegistry:remove(contract:_get_name())
   end
+  self.ProviderRegistry = nil
+  self.ContractRegistry = nil
   OpenBusFixture.teardown(self,...)
 end
 
@@ -61,7 +62,6 @@ return
           -- empty contracts
           checks.assert(provider:_get_contracts(), checks.like{})
           for _, contract in ipairs(contracts) do
-            local ok = provider:addContract(contract)
             assert(provider:addContract(contract))
           end
           -- all contracts were added
@@ -93,13 +93,15 @@ return
         for name in pairs(AllContracts) do
           assert(provider:addContract(name))
         end
+        provider:_set_name("AnyNewProviderName")
         provider:_set_code("BUGGYAPP")
         provider:_set_office("Tecgraf/Engdist/OpenBus")
         provider:_set_support({"users@tecgraf"})
         provider:_set_manager({"openbus-dev@tecgraf"})
         provider:_set_busquery("offer.entity == 'buggy_development'")
 
-        local updated = fixture.ProviderRegistry:get("AnyProvider")
+        local updated = fixture.ProviderRegistry:get("AnyNewProviderName")
+        checks.assert(updated:_get_name(), checks.is(provider:_get_name()))
         checks.assert(updated:_get_code(), checks.is(provider:_get_code()))
         checks.assert(updated:_get_office(), checks.is(provider:_get_office()))
         checks.assert(updated:_get_support(), checks.like(provider:_get_support()))

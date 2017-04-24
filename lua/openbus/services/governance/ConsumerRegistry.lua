@@ -11,6 +11,7 @@ local Consumer = oo.class{
   __type = ConsumerType,
 }
 function Consumer:__init()
+  assert(self.context.ConsumerRegistry)
   assert(self.name)
   self.code = ""
   self.office = ""
@@ -21,7 +22,12 @@ function Consumer:__init()
 end
 function Consumer:_set_name(name)
   log:action(msg.UpdatedConsumerName:tag{oldname=self.name, newname=name})
+  self.context.ConsumerRegistry._consumers[self.name] = nil
+  self.context.ConsumerRegistry._consumers[name] = self
   self.name = name
+end
+function Consumer:_get_name()
+  return self.name
 end
 function Consumer:_set_code(code)
   log:action(msg.UpdatedConsumerCode:tag{oldcode=self.code, newcode=code})
@@ -39,8 +45,8 @@ function ConsumerRegistry:__init()
 end
 function ConsumerRegistry:_get_consumers()
   local result = {}
-  for name, provider in pairs(self._consumers) do
-    result[#result+1] = provider
+  for name, consumer in pairs(self._consumers) do
+    result[#result+1] = consumer
   end
   return result
 end
@@ -48,9 +54,9 @@ function ConsumerRegistry:get(name)
   return self._consumers[name]
 end
 function ConsumerRegistry:add(name)
-  local provider = Consumer{name = name}
-  self._consumers[name] = provider
-  return provider
+  local consumer = Consumer{context = self.context, name = name}
+  self._consumers[name] = consumer
+  return consumer
 end
 function ConsumerRegistry:remove(name)
   local result = self._consumers[name]

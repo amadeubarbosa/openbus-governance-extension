@@ -79,8 +79,10 @@ interface Integration {
 	readonly attribute long id;
 	attribute Consumer consumer;
 	attribute Provider provider;
-	attribute ContractSeq contracts;
 	attribute boolean activated;
+	attribute ContractSeq contracts;
+	boolean addContract(in string name);
+	boolean removeContract(in string name);
 };
 typedef sequence<Integration> IntegrationSeq;
 
