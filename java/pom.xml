@@ -1,0 +1,115 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>br.puc-rio.tecgraf.openbus</groupId>
+  <artifactId>openbus-governance-service</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>OpenBus - Governance Service IDLs</name>
+  <url>http://www.tecgraf.puc-rio.br/openbus</url>
+
+  <properties>
+    <java.version>1.8</java.version>
+    <jacorb.version>3.8</jacorb.version>
+    <idlj.version>1.2.2</idlj.version>
+    <nexus.url>http://maven.tecgraf.puc-rio.br:8081/nexus/content</nexus.url>
+    <scm.baseurl></scm.baseurl>
+  </properties>
+
+  <scm>
+    <connection>scm:git:https://git.tecgraf.puc-rio.br/openbus/openbus-governance-extension.git</connection>
+    <developerConnection>scm:git:https://git.tecgraf.puc-rio.br/openbus/openbus-governance-extension.git</developerConnection>
+    <url>https://git.tecgraf.puc-rio.br/openbus/openbus-governance-extension</url>
+    <tag>HEAD</tag>
+  </scm>
+
+
+  <distributionManagement>
+    <repository>
+      <id>tecgraf-pub-releases</id>
+      <name>Releases do Tecgraf</name>
+      <url>${nexus.url}/repositories/releases</url>
+    </repository>
+    <snapshotRepository>
+      <id>tecgraf-pub-snapshots</id>
+      <name>Snapshots do Tecgraf</name>
+      <url>${nexus.url}/repositories/snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <repositories>
+    <repository>
+      <id>nexus</id>
+      <url>${nexus.url}/groups/public</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>idlj-maven-plugin</artifactId>
+        <version>${idlj.version}</version>
+        <configuration>
+          <compiler>jacorb</compiler>
+          <sourceDirectory>../idl</sourceDirectory>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.jacorb</groupId>
+            <artifactId>jacorb-idl-compiler</artifactId>
+            <version>${jacorb.version}</version>
+            <scope>compile</scope>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- plugins para garantir o correto release -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>1.0</version>
+        <executions>
+          <execution>
+            <id>enforce-versions</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[1.8,1.9)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
+          <compilerArgument>-Xbootclasspath/p:${settings.localRepository}/org/jacorb/jacorb-omgapi/${jacorb.version}/jacorb-omgapi-${jacorb.version}.jar</compilerArgument>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5.3</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>
