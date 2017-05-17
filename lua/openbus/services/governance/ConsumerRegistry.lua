@@ -15,8 +15,8 @@ function Consumer:__init()
   assert(self.name)
   self.code = ""
   self.office = ""
-  self.support = ""
-  self.manager = ""
+  self.support = {}
+  self.manager = {}
   self.busquery = ""
   self._contracts = {}
 end
