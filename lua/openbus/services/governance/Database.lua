@@ -4,135 +4,87 @@ local lfs = require "lfs"
 local getattribute = lfs.attributes
 
 local log = require "openbus.util.logger"
+local msg = require "openbus.util.messages"
 
 local oo = require "openbus.util.oo"
 local class = oo.class
 
-local DataBase = class()
+local Database = class()
 
-local SQL_create_tables = [[
-  CREATE TABLE IF NOT EXISTS settings (
-    key   TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  );
-  
-  CREATE TABLE IF NOT EXISTS category (
-    id   TEXT PRIMARY KEY, 
-    name TEXT NOT NULL
-  );
+local DB_VERSION = 10 --  1.0
 
-  CREATE TABLE IF NOT EXISTS certificate (
-    entity TEXT PRIMARY KEY,
-    certificate BLOB NOT NULL
-  );
+local SQL_QUERY_VERSION = 
+[[PRAGMA main.user_version;]]
 
-  CREATE TABLE IF NOT EXISTS entity (
-    id          TEXT PRIMARY KEY,
-    name        TEXT,
-    category TEXT NOT NULL
-      REFERENCES category(id)
-      ON DELETE CASCADE    
-  );
+local SQL_UPDATE_VERSION = 
+[[PRAGMA main.user_version = ]]..DB_VERSION..[[;]]
 
-  CREATE TABLE IF NOT EXISTS login (
-    id                  TEXT PRIMARY KEY,
-    entity              TEXT NOT NULL,
-    encodedkey          BLOB NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS loginObserver (
-    id       TEXT PRIMARY KEY,
-    ior      TEXT NOT NULL,
-    login TEXT NOT NULL
-      REFERENCES login(id)
-      ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS watchedLogin (
-    login_observer TEXT NOT NULL
-      REFERENCES loginObserver(id)
-      ON DELETE CASCADE,
-    login TEXT NOT NULL
-      REFERENCES login(id)
-      ON DELETE CASCADE,
-    CONSTRAINT pkey PRIMARY KEY (
-      login_observer,
-      login)
-  );
-
+local SQL_CREATE_TABLES = [[
   CREATE TABLE IF NOT EXISTS interface (
-    repid TEXT PRIMARY KEY
+    repid      TEXT PRIMARY KEY
   );
 
-  CREATE TABLE IF NOT EXISTS entityInterface (
-    entity    TEXT
-      REFERENCES entity(id)
-      ON DELETE CASCADE,
-    interface TEXT
-      REFERENCES interface(repid)
-      ON DELETE CASCADE
+  CREATE TABLE IF NOT EXISTS contract (
+    name       TEXT PRIMARY KEY
   );
 
-  CREATE TABLE IF NOT EXISTS facet (
-    name           TEXT,
-    interface_name TEXT,
-    offer          TEXT
-      REFERENCES offer(id)
-      ON DELETE CASCADE
+  CREATE TABLE IF NOT EXISTS provider (
+    name       TEXT PRIMARY KEY,
+    code       TEXT,
+    office     TEXT,
+    support    TEXT,
+    manager    TEXT,
+    busquery   TEXT
   );
 
-  CREATE TABLE IF NOT EXISTS propertyOffer (
-    name     TEXT NOT NULL,
-    value    TEXT NOT NULL,
-    offer    TEXT NOT NULL
-      REFERENCES offer(id)
-      ON DELETE CASCADE
+  CREATE TABLE IF NOT EXISTS consumer (
+    name       TEXT PRIMARY KEY,
+    code       TEXT,
+    office     TEXT,
+    support    TEXT,
+    manager    TEXT,
+    busquery   TEXT
   );
 
-  CREATE TABLE IF NOT EXISTS propertyOfferRegistryObserver (
-    name                       TEXT NOT NULL,
-    value                      TEXT NOT NULL,
-    offer_registry_observer    TEXT NOT NULL
-      REFERENCES offerRegistryObserver(id)
-      ON DELETE CASCADE
+  CREATE TABLE IF NOT EXISTS integration (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    consumer   TEXT,
+    provider   TEXT,
+    activated  INTEGER
   );
 
-  CREATE TABLE IF NOT EXISTS offer (
-    id                      TEXT PRIMARY KEY,
-    service_ref             TEXT NOT NULL,
-    entity                  TEXT NOT NULL,
-    login                   TEXT NOT NULL,
-    timestamp               TEXT NOT NULL,
-    day                     TEXT NOT NULL,
-    month                   TEXT NOT NULL,
-    year                    TEXT NOT NULL,
-    hour                    TEXT NOT NULL,
-    minute                  TEXT NOT NULL,
-    second                  TEXT NOT NULL,
-    component_name          TEXT NOT NULL,
-    component_major_version TEXT NOT NULL,
-    component_minor_version TEXT NOT NULL,
-    component_patch_version TEXT NOT NULL,
-    component_platform_spec TEXT NOT NULL
+  CREATE TABLE IF NOT EXISTS interfaceContract (
+    contract   TEXT NOT NULL
+               REFERENCES contract(name)
+               ON DELETE CASCADE,
+    interface  TEXT NOT NULL
+               REFERENCES interface(repid)
+               ON DELETE CASCADE,
+    CONSTRAINT PK_interfaceContract PRIMARY KEY (contract, interface)
   );
 
-  CREATE TABLE IF NOT EXISTS offerObserver (
-    id       TEXT PRIMARY KEY,
-    login    TEXT NOT NULL,
-    observer TEXT NOT NULL,
-    offer    TEXT NOT NULL
-      REFERENCES offer(id)
-      ON DELETE CASCADE
+  CREATE TABLE IF NOT EXISTS providerContract (
+    contract TEXT NOT NULL
+             REFERENCES contract(name)
+             ON DELETE CASCADE,
+    provider TEXT NOT NULL
+             REFERENCES provider(name)
+             ON DELETE CASCADE,
+    CONSTRAINT PK_providerContract PRIMARY KEY (contract, provider)
   );
 
-  CREATE TABLE IF NOT EXISTS offerRegistryObserver (
-    id       TEXT PRIMARY KEY,
-    login    TEXT NOT NULL,
-    observer TEXT NOT NULL
+  CREATE TABLE IF NOT EXISTS integrationContract (
+    contract TEXT NOT NULL
+             REFERENCES contract(name)
+             ON DELETE CASCADE,
+    integration INTEGER NOT NULL
+             REFERENCES integration(id)
+             ON DELETE CASCADE,
+    CONSTRAINT PK_integrationContract PRIMARY KEY (contract, integration)
   );
 ]]
 
-local actions = {
+local actions = {--[[
   -- INSERT
   { name = "addCategory",
     values = { "id", "name" } },
@@ -281,23 +233,19 @@ local actions = {
     where_hc = { "interface.repid = entityInterface.interface" },
     where = { "entityInterface.entity" },
   },
+]]
 }
 
-local emsgprefix = "SQLite error with code="
 
-local function herror(code, extmsg)
-  if code and code ~= lsqlite.OK then
-    local msg = emsgprefix..tostring(code)
-    if extmsg then
-      msg = msg.."; "..extmsg  
-    end
-    return nil, msg
-  end
-  return true
+local function quote(sql)
+  return sql and string.gsub(sql, '%s+', ' ')
 end
 
-local function gsubSQL(sql)
-  return "SQL: [["..string.gsub(sql, '%s+', ' ').."]]"
+local function herror(code, sql, errmsg)
+  if code and code ~= lsqlite.OK then
+    return nil, msg.SqliteError:tag{code=tostring(code), sql=quote(sql), error=errmsg}
+  end
+  return true
 end
 
 local function iClause(sql, clause, entries, sep, suf)
@@ -357,25 +305,20 @@ local function buildSQL(action)
   return sql
 end
 
-function DataBase:aexec(sql)
-  local gsql = gsubSQL(sql)
-  log:database(sql)
-  assert(herror(self.conn:exec(sql), gsql))
-end
-
 local stmts = {}
 
-function DataBase:__init()
+function Database:__init()
   local conn = self.conn
+  self:aexec(SQL_UPDATE_VERSION)
   self:aexec("PRAGMA foreign_keys=ON;")
   self:aexec("BEGIN;")
-  self:aexec(SQL_create_tables)
+  self:aexec(SQL_CREATE_TABLES)
   local pstmts = {}
   for _, action in ipairs(actions) do
     local sql = buildSQL(action)
     local res, errcode = conn:prepare(sql)
     if not res then 
-      assert(herror(errcode, gsubSQL(sql)))
+      assert(herror(errcode, quote(sql)))
     end
     local key = action.name
     pstmts[key] = res
@@ -385,47 +328,67 @@ function DataBase:__init()
   self.pstmts = pstmts
 end
 
-function DataBase:exec(stmt)
-  local gsql = gsubSQL(stmt)
-  log:database(stmt)
-  local res, errmsg = herror(self.conn:exec(stmt))
-  errmsg = gsql.." "..emsgprefix..tostring(errcode)
-  if errcode == lsqlite.DONE then      
-    return true
-  elseif errcode == lsqlite.ERROR then
-    return nil, errmsg.."; "..self.conn:errmsg()
-  end
-  return nil, errmsg
+-- assert conn:exec
+function Database:aexec(sql)
+  assert(self:exec(sql))
 end
 
-function DataBase:pexec(action, ...)
-  local pstmt = self.pstmts[action]
-  local sql = gsubSQL(stmts[action]).." "
-  local res, errmsg = herror(pstmt:bind_values(...))
+-- raw conn:exec
+function Database:exec(sql, callback)
+  local gsql = quote(sql)
+  local res, errmsg = herror(self.conn:exec(sql, callback), gsql, self.conn:errmsg())
   if not res then
-    return nil, sql..errmsg
+    return nil, errmsg
   end
+  log:database(msg.SqlStatement:tag{sql=gsql})
+  return true
+end
+
+-- prepare statements
+function Database:pexec(action, ...)
+  local pstmt = self.pstmts[action]
+  local gsql = quote(stmts[action])
+  local res, errmsg = herror(pstmt:bind_values(...), gsql)
+  if not res then
+    return nil, errmsg
+  end
+  log:database(msg.SqlPrepareStatement:tag{sql=gsql, values="{"..table.concat({...}, ", ").."}"})
   local errcode = pstmt:step()
-  log:database(sql.." with values {"
-  		  ..table.concat({...}, ", ").."}")
-  errmsg = sql..emsgprefix..tostring(errcode)
   if errcode == lsqlite.DONE then
     pstmt:reset()
     return true, errcode
   elseif errcode == lsqlite.ROW then
     return true, errcode
-  elseif errcode == lsqlite.ERROR then
-    errmsg = errmsg.."; "..self.conn:errmsg()
-  end  
-  return nil, errmsg
+  end
+  return nil, herror(errcode, gsql, self.conn:errmsg())
 end
 
 local module = {}
 
+function module.checkversion(conn)
+  local self = {conn = conn}
+  local version = nil
+  local res, errmsg =
+    Database.exec(self, SQL_QUERY_VERSION, function(_, _, values, _)
+      version = tonumber(values[1])
+      return 0
+    end)
+  if not res then
+    return nil, errmsg
+  end
+  if not version or (version > 0 and version ~= DB_VERSION) then
+    return nil, msg.SchemaUserVersionMismatch:tag{current=version, expected=DB_VERSION}
+  end
+  return version
+end
+
 function module.open(path)
   local conn, errcode, errmsg = lsqlite.open(path)
-  if not conn then return herror(errcode, errmsg) end
-  return DataBase{ conn = conn }
+  if not conn then return herror(errcode, nil, errmsg) end
+  local version, errmsg = module.checkversion(conn)
+  if not version then return nil, errmsg end
+  log:database(msg.SchemaUserVersionIsCompatible:tag{version=version})
+  return Database{ conn = conn }
 end
 
 return module
