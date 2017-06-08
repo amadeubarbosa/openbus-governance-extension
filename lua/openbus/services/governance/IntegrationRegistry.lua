@@ -42,14 +42,6 @@ end
 function Integration:_get_provider()
   return self.provider
 end
-function Integration:_set_contracts(contracts)
-  local contractNames = {}
-  for _, c in ipairs(contracts) do
-    contractNames[c:_get_name()] = true
-  end
-  log:action(msg.UpdateIntegrationContracts:tag{to=contractNames})
-  self._contracts = contractNames
-end
 function Integration:_get_contracts() 
   local result = {}
   for name in pairs(self._contracts) do

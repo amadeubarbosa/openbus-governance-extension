@@ -80,7 +80,7 @@ interface Integration {
 	attribute Consumer consumer;
 	attribute Provider provider;
 	attribute boolean activated;
-	attribute ContractSeq contracts;
+	readonly attribute ContractSeq contracts;
 	boolean addContract(in string name);
 	boolean removeContract(in string name);
 };
@@ -92,11 +92,11 @@ interface IntegrationRegistry {
 	Integration remove(in long id);
 };
 
+}; // version
+
+}; // governance
+
 }; // services
-
-}; // extension version
-
-}; // extension
 
 }; // openbus
 
