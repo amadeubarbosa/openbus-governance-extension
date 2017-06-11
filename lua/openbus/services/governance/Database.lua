@@ -1,3 +1,10 @@
+-- This code was inspired by openbus.util.database code from SDK Lua 2.1
+-- Improvements:
+--  + adds db:checkversion operation to test version of sqlite's user_version
+--  + changes db:open operation to use db:checkversion by default
+--  + adds support to callback function in db:exec operation
+--  + adds support to named parameters in add and delete actions
+--
 local lsqlite = require "lsqlite3"
 
 local lfs = require "lfs"
@@ -13,10 +20,10 @@ local Database = class()
 
 local DB_VERSION = 10 --  1.0
 
-local SQL_QUERY_VERSION = 
+local SQL_QUERY_VERSION =
 [[PRAGMA main.user_version;]]
 
-local SQL_UPDATE_VERSION = 
+local SQL_UPDATE_VERSION =
 [[PRAGMA main.user_version = ]]..DB_VERSION..[[;]]
 
 local SQL_CREATE_TABLES = [[
@@ -183,6 +190,10 @@ local actions = {
     select = { "*" } },
   { name="getConsumer",
     select = { "*" } },
+  { name="getConsumerByName",
+    select = { "*" },
+    from={ "consumer"},
+    where={ "name" } },
   { name="getIntegration",
     select = { "*" } },
   { name="getInterfaceContract",
@@ -217,7 +228,7 @@ local function iClause(sql, clause, entries, sep, suf)
   else
     sql = ""
   end
-  if not string.find(sql, clause) then 
+  if not string.find(sql, clause) then
      sql = sql..clause.." "
   else
      sql = sql.." AND "
@@ -225,7 +236,13 @@ local function iClause(sql, clause, entries, sep, suf)
   for i, col in ipairs(entries) do
     if i > 1 then sql = sql..sep.." " end
     sql = sql..col
-    if suf then sql = sql.." "..suf.." " end
+    if suf then
+      if suf:find(":") then -- named parameters
+        sql = sql.." "..suf..col.." "
+      else -- unnamed parameter ( '?' syntax )
+        sql = sql.." "..suf.." "
+      end
+    end
   end
   return sql
 end
@@ -233,7 +250,8 @@ end
 local function buildSQL(action)
   local name = action.name
   local verb = string.sub(name, 1, 3)
-  local sql
+  local sql -- regular statement parameter
+  local namedsql -- named statement parameter
   local stable = string.lower(string.sub(name, 4, 4))
      ..string.sub(name, 5, -1)
   if "add" == verb then
@@ -241,11 +259,16 @@ local function buildSQL(action)
     local values = action.values
     sql = sql..table.concat(values, ",")
     sql = sql..") VALUES ("
+    namedsql = sql -- string copy
     sql = sql..string.rep("?", #values, ",")
     sql = sql..")"
+    namedsql = namedsql..":"..table.concat(values, ",:")
+    namedsql = namedsql..")"
   elseif "del" == verb then
     sql = "DELETE FROM "..stable.." "
-    sql = iClause(sql, "WHERE", action.where, "AND", "= ?") 
+    namedsql = sql
+    sql = iClause(sql, "WHERE", action.where, "AND", "= ?")
+    namedsql = iClause(namedsql, "WHERE", action.where, "AND", "= :")
   elseif "set" == verb then
     local stable = action.table or stable
     sql = "UPDATE "..stable.. " "
@@ -254,18 +277,16 @@ local function buildSQL(action)
   elseif "get" == verb then
     sql = iClause(nil, "SELECT", action.select, ",")
     local from = action.from
-    if from then 
+    if from then
       sql = iClause(sql, "FROM", action.from, ",")
     else
       sql = sql.." FROM "..stable
     end
-    sql = iClause(sql, "WHERE", action.where, "AND", "= ?") 
-    sql = iClause(sql, "WHERE", action.where_hc, "AND") 
+    sql = iClause(sql, "WHERE", action.where, "AND", "= ?")
+    sql = iClause(sql, "WHERE", action.where_hc, "AND")
   end
-  return sql
+  return sql, namedsql
 end
-
-local stmts = {}
 
 function Database:__init()
   local conn = self.conn
@@ -273,19 +294,31 @@ function Database:__init()
   self:aexec("PRAGMA foreign_keys=ON;")
   self:aexec("BEGIN;")
   self:aexec(SQL_CREATE_TABLES)
-  local pstmts = {}
+  local pstmts, pstmts_named = {}, {}
+  local stmts, stmts_named = {}, {}
   for _, action in ipairs(actions) do
-    local sql = buildSQL(action)
+    local sql, namedsql = buildSQL(action)
     local res, errcode = conn:prepare(sql)
-    if not res then 
+    if not res then
       assert(herror(errcode, quote(sql)))
     end
     local key = action.name
     pstmts[key] = res
     stmts[key] = sql
+    if namedsql then
+      local res, errcode = conn:prepare(namedsql)
+      if not res then
+        assert(herror(errcode, quote(namedsql)))
+      end
+      pstmts_named[key] = res
+      stmts_named[key] = namedsql
+    end
   end
   self:aexec("COMMIT;")
   self.pstmts = pstmts
+  self.stmts = stmts
+  self.pstmts_named = pstmts_named
+  self.stmts_named = stmts_named
 end
 
 -- assert conn:exec
@@ -304,15 +337,27 @@ function Database:exec(sql, callback)
   return true
 end
 
--- prepare statements
+-- prepare statements mapped on actions table
 function Database:pexec(action, ...)
-  local pstmt = self.pstmts[action]
-  local gsql = quote(stmts[action])
-  local res, errmsg = herror(pstmt:bind_values(...), gsql)
-  if not res then
-    return nil, errmsg
+  local values = select(1, ...)
+  local pstmt, gsql = nil, nil
+  if type(values) == "table" then -- named binding
+    pstmt  = assert(self.pstmts_named[action], msg.NoSupportForNamedParameter:tag{action=action})
+    gsql   = quote(self.stmts_named[action])
+    local res, errmsg = herror(pstmt:bind_names(values), gsql)
+    if not res then
+      return nil, errmsg
+    end
+  else -- unnamed binding
+    values = {...}
+    pstmt  = assert(self.pstmts[action], msg.NoSupportForUnnamedParameter:tag{action=action})
+    gsql   = quote(self.stmts[action])
+    local res, errmsg = herror(pstmt:bind_values(...), gsql)
+    if not res then
+      return nil, errmsg
+    end
   end
-  log:database(msg.SqlPrepareStatement:tag{sql=gsql, values="{"..table.concat({...}, ", ").."}"})
+  log:database(msg.SqlPrepareStatement:tag{ sql=gsql, values=values })
   local errcode = pstmt:step()
   if errcode == lsqlite.DONE then
     pstmt:reset()
@@ -320,7 +365,7 @@ function Database:pexec(action, ...)
   elseif errcode == lsqlite.ROW then
     return true, errcode
   end
-  return nil, herror(errcode, gsql, self.conn:errmsg())
+  return herror(errcode, gsql, self.conn:errmsg())
 end
 
 local module = {}
