@@ -22,7 +22,7 @@ local IntegrationRegistry = require "openbus.services.governance.IntegrationRegi
 local governanceidl = require "openbus.services.governance.idl"
 local ServiceName = governanceidl.const.ServiceName
 
-local config, orb
+local config, orb, privatekey
 do -- loading configuration 
   config = server.ConfigArgs(
     {
@@ -58,6 +58,13 @@ do -- loading configuration
   -- custom logs
   server.setuplog(log, config.loglevel, config.logfile)
   server.setuplog(oillog, config.oilloglevel, config.oillogfile)
+
+  -- read privatekey
+  privatekey, errmsg = server.readprivatekey(config.privatekey)
+  if not privatekey then
+    log:misconfig(errmsg)
+    return 1
+  end
 
   -- validate oil objrefaddr configuration
   local objrefaddr = {
@@ -100,7 +107,7 @@ local OpenBusContext = orb.OpenBusContext
 -- bus connection
 local connection = OpenBusContext:createConnection(config.bushost, config.busport)
 OpenBusContext:setDefaultConnection(connection)
-connection:loginByPassword(config.entity, config.entity, "testing")
+connection:loginByCertificate(config.entity, privatekey)
 
 do -- server creation
   local component = server.newSCS(
