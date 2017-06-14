@@ -1,12 +1,10 @@
 local oil     = require "oil"
 local oillog  = require "oil.verbose"
-local oo      = require "openbus.util.oo"
-local ComponentContext = require "scs.core.ComponentContext"
 
 local openbus = require "openbus"
+local oo      = require "openbus.util.oo"
 local log     = require "openbus.util.logger"
 local server  = require "openbus.util.server"
-local msg     = require "openbus.services.governance.messages"
 
 local coreidl = require "openbus.core.idl"  -- OpenBus types
 local InvalidLoginsType = coreidl.types.services.access_control.InvalidLogins
@@ -15,14 +13,21 @@ local ServiceFailure = coreidl.throw.services.ServiceFailure
 local sysex = require "openbus.util.sysex"
 local NO_PERMISSION = sysex.NO_PERMISSION
 
+local db = require "openbus.services.governance.Database"
+local dbopen = db.open
+local dbversion = db.checkversion
+
 local ContractRegistry = require "openbus.services.governance.ContractRegistry"
 local ProviderRegistry = require "openbus.services.governance.ProviderRegistry"
 local ConsumerRegistry = require "openbus.services.governance.ConsumerRegistry"
 local IntegrationRegistry = require "openbus.services.governance.IntegrationRegistry"
+
 local governanceidl = require "openbus.services.governance.idl"
 local ServiceName = governanceidl.const.ServiceName
 
-local config, orb, privatekey
+local msg = require "openbus.services.governance.messages"
+
+local config, orb, privatekey, database
 do -- loading configuration 
   config = server.ConfigArgs(
     {
@@ -57,13 +62,28 @@ do -- loading configuration
   end
   -- custom logs
   server.setuplog(log, config.loglevel, config.logfile)
+  log:config(msg.ServiceLogLevel:tag{value=config.loglevel})
   server.setuplog(oillog, config.oilloglevel, config.oillogfile)
+  log:config(msg.OilLogLevel:tag{value=config.oilloglevel})
 
-  -- read privatekey
-  privatekey, errmsg = server.readprivatekey(config.privatekey)
-  if not privatekey then
-    log:misconfig(errmsg)
-    return 1
+  do -- read privatekey
+    local result, errmsg = server.readprivatekey(config.privatekey)
+    if not result then
+      log:misconfig(msg.UnableToLoadPrivateKey:tag{path=config.privatekey, error=errmsg})
+      return 1
+    end
+    privatekey = result
+    log:config(msg.ServicePrivateKeyLoaded:tag{path=config.privatekey})
+  end
+
+  do -- open database
+    local result, errmsg = dbopen(config.database)
+    if not result then
+     log:misconfig(msg.UnableToLoadDatabase:tag{path=config.database, error=errmsg})
+     return 1
+    end
+    database = result
+    log:config(msg.ServiceDatabaseLoaded:tag{path=config.database,version=database.version})
   end
 
   -- validate oil objrefaddr configuration
@@ -88,7 +108,6 @@ do -- loading configuration
   if (#additional > 0) then
     objrefaddr.additional = additional
   end
-  log:config(msg.AdditionalInternetAddressConfiguration:tag(objrefaddr))
 
   -- CORBA ORB activated with OpenBus protocol
   orb = openbus.initORB{
@@ -96,6 +115,9 @@ do -- loading configuration
     port = config.port,
     objrefaddr = objrefaddr,
   }
+
+  log:config(msg.ServiceListeningAddress:tag{host=orb.host,port=orb.port})
+  log:config(msg.AdditionalInternetAddressConfiguration:tag(objrefaddr))
 end
 
 -- load interface definitions
@@ -108,6 +130,7 @@ local OpenBusContext = orb.OpenBusContext
 local connection = OpenBusContext:createConnection(config.bushost, config.busport)
 OpenBusContext:setDefaultConnection(connection)
 connection:loginByCertificate(config.entity, privatekey)
+--TODO: missing connection.OnInvalidLogin implementation
 
 do -- server creation
   local component = server.newSCS(
@@ -116,11 +139,22 @@ do -- server creation
       name = ServiceName,
       objkey = ServiceName,
       facets = {
-          ContractRegistry = ContractRegistry(),
-          ProviderRegistry = ProviderRegistry(),
-          ConsumerRegistry = ConsumerRegistry(),
-          IntegrationRegistry = IntegrationRegistry(),
+        ContractRegistry = ContractRegistry,
+        ProviderRegistry = ProviderRegistry,
+        ConsumerRegistry = ConsumerRegistry,
+        IntegrationRegistry = IntegrationRegistry,
       },
+      init = function()
+        -- facets should be initialize in this order
+        ContractRegistry.database = database
+        ContractRegistry:__init()
+        ConsumerRegistry.database = database
+        ConsumerRegistry:__init()
+        ProviderRegistry.database = database
+        ProviderRegistry:__init()
+        IntegrationRegistry.database = database
+        IntegrationRegistry:__init()
+      end,
       shutdown = function(self)
         local caller = OpenBusContext:getCallerChain().caller
         if caller.entity ~= config.entity and caller.entity ~= BusEntity then

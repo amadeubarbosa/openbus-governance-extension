@@ -8,6 +8,7 @@ IntegrationFixture = cached.class({}, ProviderFixture)
 
 function IntegrationFixture:setup(...)
   ProviderFixture.setup(self,...)
+  assert(self.ProviderRegistry) -- from ProviderFixture
   self.IntegrationRegistry = assert(self.governance:getFacetByName("IntegrationRegistry"):__narrow())
   self.ConsumerRegistry = assert(self.governance:getFacetByName("ConsumerRegistry"):__narrow())
   local AllProvider = {
@@ -51,6 +52,12 @@ function IntegrationFixture:setup(...)
 end
 
 function IntegrationFixture:teardown(...)
+  for _, consumer in ipairs(self.ConsumerRegistry:_get_consumers()) do
+    self.ConsumerRegistry:remove(consumer:_get_name())
+  end
+  for _, provider in ipairs(self.ProviderRegistry:_get_providers()) do
+    self.ProviderRegistry:remove(provider:_get_name())
+  end
   ProviderFixture.teardown(self,...)
   self.ConsumerRegistry = nil
   self.IntegrationRegistry = nil

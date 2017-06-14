@@ -37,6 +37,7 @@ return
 
         for name, interfaces in pairs(AllContract) do
           local contract = fixture.ContractRegistry:add(name)
+          checks.assert(contract:_get_name(), checks.is(name))
           before[#before+1] = contract
           -- empty interfaces
           checks.assert(contract:_get_interfaces(), checks.like{})

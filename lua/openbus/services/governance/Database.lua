@@ -196,6 +196,14 @@ local actions = {
     where={ "name" } },
   { name="getIntegration",
     select = { "*" } },
+  { name="getIntegrationByConsumer",
+    select = { "*" },
+    from   = { "integration" },
+    where  = { "consumer" } },
+  { name="getIntegrationByProvider",
+    select = { "*" },
+    from   = { "integration" },
+    where  = { "provider" } },
   { name="getInterfaceContract",
     select = { "contract", "interface" },
     where = { "contract" } },
@@ -289,7 +297,7 @@ local function buildSQL(action)
 end
 
 function Database:__init()
-  local conn = self.conn
+  local conn = assert(self.conn)
   self:aexec(SQL_UPDATE_VERSION)
   self:aexec("PRAGMA foreign_keys=ON;")
   self:aexec("BEGIN;")
@@ -393,7 +401,10 @@ function module.open(path)
   local version, errmsg = module.checkversion(conn)
   if not version then return nil, errmsg end
   log:database(msg.SchemaUserVersionIsCompatible:tag{version=version})
-  return Database{ conn = conn }
+  return Database{
+    conn = conn,
+    version = version
+  }
 end
 
 return module
