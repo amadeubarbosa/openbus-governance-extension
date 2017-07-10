@@ -20,7 +20,8 @@ function Consumer:__init()
   assert(self.database)
   assert(self.name)
   self.code = self.code or ""
-  self.office = self.office or ""
+  self.supportoffice = self.supportoffice or ""
+  self.manageroffice = self.manageroffice or ""
   self.busquery = self.busquery or ""
   self.support = self.support or {}
   self.manager = self.manager or {}
@@ -65,7 +66,7 @@ function Consumer:_set_name(name)
   log:action(msg.UpdatedConsumerName:tag{oldname=oldname, newname=name})
 end
 do -- getters & setters for very simple attributes
-  local camelcase = {"Code", "Office", "Support", "Manager", "BusQuery"}
+  local camelcase = {"Code", "SupportOffice", "ManagerOffice", "Support", "Manager", "BusQuery"}
   for _, item in ipairs(camelcase) do
     local attribute = string.lower(item)
     local getmethod = "_get_"..attribute

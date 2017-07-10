@@ -41,7 +41,8 @@ interface ContractRegistry {
 interface Provider {
 	attribute string name;
 	attribute string code;
-	attribute string office;
+	attribute string supportOffice;
+	attribute string managerOffice;
 	attribute StringSeq support;
 	attribute StringSeq manager;
 	attribute string busquery;
@@ -61,7 +62,8 @@ interface ProviderRegistry {
 interface Consumer {
 	attribute string name;
 	attribute string code;
-	attribute string office;
+	attribute string supportOffice;
+	attribute string managerOffice;
 	attribute StringSeq support;
 	attribute StringSeq manager;
 	attribute string busquery;

@@ -85,7 +85,12 @@ end
 
 local CONSUMERS = {}
 for i=1,10 do
-  CONSUMERS[i] = { name=string.random(6), code=string.random(4), support=string.random(6), manager=string.random(6), office=string.random(6), busquery=string.random(25) }
+  CONSUMERS[i] = { 
+    name=string.random(6), code=string.random(4),
+    supportoffice=string.random(6), manageroffice=string.random(6),
+    support=string.random(6), manager=string.random(6),
+    busquery=string.random(25)
+  }
 end
 
 do -- CONSUMERS
@@ -118,7 +123,12 @@ end
 
 local PROVIDERS = {}
 for i=1,10 do
-  PROVIDERS[i] = { name=string.random(6), code=string.random(4), support=string.random(6), manager=string.random(6), office=string.random(6), busquery=string.random(25), CONTRACTS={} }
+  PROVIDERS[i] = { 
+    name=string.random(6), code=string.random(4),
+    supportoffice=string.random(6), manageroffice=string.random(6),
+    support=string.random(6), manager=string.random(6),
+    busquery=string.random(25), CONTRACTS={}
+  }
   for j=1,5 do
     PROVIDERS[i].CONTRACTS[CONTRACTS[math.random(#CONTRACTS)]] = true
   end
