@@ -30,15 +30,17 @@ function IntegrationFixture:setup(...)
   local AllConsumer = {
     ["VGEPlugins"] = {
       code = "WELLIMP",
-      office = "Tecgraf/Engdist/OpenBus",
+      supportoffice = "Tecgraf/Engdist/OpenBus",
       support = {"users@tecgraf"},
+      manageroffice = "Tecgraf/External",
       manager = {"boss@tecgraf"},
       busquery = "offer.entity == 'plugins_development'",
     },
     ["RECON"] = {
       code = "RECGEO",
-      office = "Tecgraf/RECON",
+      supportoffice = "Tecgraf/RECON",
       support = {"recon@tecgraf"},
+      manageroffice = "Tecgraf/Products",
       manager = {"boss2@tecgraf"},
       busquery = "offer.entity == 'recon_development'",
     },
