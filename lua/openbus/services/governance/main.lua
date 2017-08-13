@@ -5,10 +5,13 @@ local openbus = require "openbus"
 local oo      = require "openbus.util.oo"
 local log     = require "openbus.util.logger"
 local server  = require "openbus.util.server"
+local sleep   = openbus.sleep
 
 local coreidl = require "openbus.core.idl"  -- OpenBus types
-local InvalidLoginsType = coreidl.types.services.access_control.InvalidLogins
 local ServiceFailure = coreidl.throw.services.ServiceFailure
+
+local libidl = require "openbus.idl"
+local AlreadyLoggedIn = libidl.types.AlreadyLoggedIn
 
 local sysex = require "openbus.util.sysex"
 local NO_PERMISSION = sysex.NO_PERMISSION
@@ -28,13 +31,13 @@ local ServiceName = governanceidl.const.ServiceName
 local msg = require "openbus.services.governance.messages"
 
 local config, orb, privatekey, database
-do -- loading configuration 
+do -- loading configuration
   config = server.ConfigArgs(
     {
       host = "*",
-      port = 2091,    
+      port = 2091,
       bushost = "localhost",
-      busport = 2089,  
+      busport = 2089,
       database = "governance.sqlite3",
       privatekey = "governance.key",
       entity = ServiceName,
@@ -45,10 +48,11 @@ do -- loading configuration
       nodnslookup = false,
       noipaddress = false,
       alternateaddr = {},
+      relogininterval = 5,
     })
 
   -- read configuration file
-  config:configs("configs", 
+  config:configs("configs",
     os.getenv("GOVERNANCE_CONFIG") or "governance.cfg")
   -- read arguments passed by command line
   io.write(msg.CopyrightNotice, "\n")
@@ -130,7 +134,19 @@ local OpenBusContext = orb.OpenBusContext
 local connection = OpenBusContext:createConnection(config.bushost, config.busport)
 OpenBusContext:setDefaultConnection(connection)
 connection:loginByCertificate(config.entity, privatekey)
---TODO: missing connection.OnInvalidLogin implementation
+connection.onInvalidLogin = function(conn, oldLogin)
+  while true do
+    local ok, ex = pcall(function()
+      log:action(msg.RetryLogInAfterInvalidLogin:tag{oldLogin=oldLogin.id})
+      conn:loginByCertificate(config.entity, privatekey)
+    end)
+    if ok or ex._repid == AlreadyLoggedIn then
+      break
+    end
+    log:exception(msg.FailedRetryingLogIn:tag{error=ex})
+    sleep(config.relogininterval)
+  end
+end
 
 do -- server creation
   local component = server.newSCS(
