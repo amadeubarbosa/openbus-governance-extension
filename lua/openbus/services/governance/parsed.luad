@@ -10,7 +10,7 @@ local idlspec = '#include "governance-extension.idl"'
 
 local idlpath = os.getenv("OPENBUS_IDLPATH")
 if idlpath == nil then
-  stderr:write("OPENBUS_IDLPATH is not defined! Using '.' as default.\n")
+  stderr:write("warning: OPENBUS_IDLPATH is not defined! Using '.' as default.\n")
   idlpath = "."
 end
 

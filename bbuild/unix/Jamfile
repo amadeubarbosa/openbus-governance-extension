@@ -1,0 +1,14 @@
+lib dl
+  :
+  : <link>shared
+  ;
+
+lib uuid
+  :
+  : <link>shared
+  ;
+
+lib pthread
+  :
+  : <link>shared
+  ;

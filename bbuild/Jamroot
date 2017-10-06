@@ -1,0 +1,261 @@
+# -*- coding: iso-8859-1-unix -*-
+
+import os ;
+import modules ;
+
+path-constant here : . ;
+path-constant root : $(here)/.. ;
+path-constant deps : $(root)/.. ;
+
+rule trim ( string )
+{
+  local match = [ MATCH "^(.*)[\n\r]$" : $(string) ] ;
+  if $(match) { return $(match[1]) ; }
+  else { return $(string) ; }
+}
+
+local revision = [ os.environ OPENBUS_CODEREV ] ;
+if ! $(revision) {
+  revision = [ trim [ SHELL "git rev-parse --short HEAD" ] ] ;
+  if ! $(revision) { revision = "snapshot" ; }
+}
+
+ECHO ...using \".$(revision)\" as revision number... ;
+
+local lua = [ os.environ LUA ] ;
+if ! $(lua)
+{
+  lua = "$(deps)/lua" ;
+}
+use-project lua : $(lua)/bbuild ; 
+
+local lce = [ os.environ LCE ] ;
+if ! $(lce)
+{
+  lce = "$(deps)/lce" ;
+}
+use-project lce : $(lce)/bbuild ;
+
+local luuid = [ os.environ LUUID ] ;
+if ! $(luuid)
+{
+  luuid = "$(deps)/luuid" ;
+}
+use-project luuid : $(luuid)/bbuild ;
+
+local openssl-jam = [ os.environ OPENSSL_JAM ] ;
+if ! $(openssl-jam)
+{
+  openssl-jam = "$(deps)/openssl.jam" ;
+}
+use-project openssl : $(openssl-jam) ; 
+
+local lfs = [ os.environ LUAFILESYSTEM ] ;
+if ! $(lfs)
+{
+  lfs = "$(deps)/luafilesystem" ;
+}
+use-project lfs : $(lfs)/bbuild ;
+
+local luavararg = [ os.environ LUAVARARG ] ;
+if ! $(luavararg)
+{
+  luavararg = "$(deps)/luavararg" ;
+}
+use-project luavararg : $(luavararg)/bbuild ;
+
+local luastruct = [ os.environ LUASTRUCT ] ;
+if ! $(luastruct)
+{
+  luastruct = "$(deps)/luastruct" ;
+}
+use-project luastruct : $(luastruct)/bbuild ;
+
+local luasocket = [ os.environ LUASOCKET ] ;
+if ! $(luasocket)
+{
+  luasocket = "$(deps)/luasocket" ;
+}
+use-project luasocket : $(luasocket)/bbuild ;
+
+loop = [ os.environ LOOP ] ;
+if ! $(loop)
+{
+  loop = "$(deps)/loop" ;
+}
+use-project loop : $(loop)/bbuild ;
+
+oil = [ os.environ OIL ] ;
+if ! $(oil)
+{
+  oil = "$(deps)/oil" ;
+}
+use-project oil : $(oil)/bbuild ;
+
+local luascs = [ os.environ LUASCS ] ;
+if ! $(luascs)
+{
+  luascs = "$(deps)/luascs" ;
+}
+use-project luascs : $(luascs)/bbuild ;
+
+local luaopenbus = [ os.environ LUAOPENBUS ] ;
+if ! $(luaopenbus)
+{
+  luaopenbus = "$(deps)/luaopenbus" ;
+}
+use-project luaopenbus : $(luaopenbus)/bbuild ;
+
+local luasec = [ os.environ LUASEC ] ;
+if ! $(luasec)
+{
+  luasec = "$(deps)/luasec" ;
+}
+use-project luasec : $(luasec)/bbuild ;
+
+local luasqlite3 = [ os.environ LUASQLITE3 ] ;
+if ! $(luasqlite3)
+{
+  luasqlite3 = "$(deps)/luasqlite3" ;
+}
+use-project luasqlite3 : $(luasqlite3)/bbuild ;
+
+scs-idl = [ os.environ SCS_IDL ] ;
+if ! $(scs-idl)
+{
+  scs-idl = "$(deps)/scs-idl" ;
+}
+
+openbus-idl = [ os.environ OPENBUS_IDL ] ;
+if ! $(openbus-idl)
+{
+  openbus-idl = "$(deps)/openbus-idl" ;
+}
+
+openbus-legacy-idl = [ os.environ OPENBUS_LEGACY_IDL ] ;
+if ! $(openbus-legacy-idl)
+{
+  openbus-legacy-idl = "$(deps)/openbus-legacy-idl" ;
+}
+
+openbus-lib-idl = [ os.environ OPENBUS_LIB_IDL ] ;
+if ! $(openbus-lib-idl)
+{
+  openbus-lib-idl = "$(deps)/openbus-lib-idl" ;
+}
+
+modules.load preloader : : $(loop)/bbuild ;
+import preloader ; 
+
+using preloader : $(lua) ;
+
+project busextension
+  : requirements
+    <target-os>windows:<pch>off
+    <target-os>windows,<link>shared:<runtime-link>shared
+    <target-os>windows,<link>static:<runtime-link>static
+    <target-os>windows:<debug-store>database
+    <target-os>windows:<define>_CRT_SECURE_NO_WARNINGS
+    <target-os>windows:<define>_WIN32
+    <define>OPENBUS_CODEREV=\\\""'$(revision)'\\\""
+    <toolset>msvc-12.0:<cxxflags>/FS
+    <debug-symbols>on
+    <link>static
+  : default-build
+    <variant>release
+  ;
+
+local service = $(root)/lua/openbus/services/governance ;
+
+make governanceextension.c
+  : $(service)/idl.lua
+    $(service)/Database.lua
+    $(service)/Listener.lua
+    $(service)/string.lua
+    $(service)/ContractRegistry.lua
+    $(service)/ProviderRegistry.lua
+    $(service)/main.lua
+    $(service)/parsed.lua
+    $(service)/messages.lua
+    $(service)/IntegrationRegistry.lua
+    $(service)/ConsumerRegistry.lua
+  : preloader.pre-compile
+  : <dependency>/lua//stage
+    <search>$(root)
+    <location>$(here)
+  ;
+
+modules.load idl2lua : : $(oil)/bbuild ;
+import idl2lua ; 
+using idl2lua : $(lua) ;
+
+make $(service)/parsed.lua 
+  : $(root)/idl/governance-extension.idl
+  : idl2lua.compile
+  ;
+
+local exe_deps = 
+  /lua//lua
+  /luuid//luuid
+  /lce//lce
+  /luafilesystem//lfs
+  /luavararg//luavararg
+  /luastruct//luastruct
+  /luasocket//luasocket
+  /luasec//luasec
+  /loop//loop
+  /loop//luatuple
+  /loop//luacothread
+  /oil//oil
+  /oil//luaidl
+  /luascs//luascs
+  /luaopenbus//luaopenbus
+  /sqlite//sqlite3
+  /luasqlite3//lsqlite3
+;
+
+local exe_requirements =
+  <dependency>/loop//loop
+  <dependency>/loop//luatuple
+  <dependency>/loop//luacothread
+  <dependency>/oil//oil
+  <dependency>/oil//luaidl
+  <dependency>/lce//lce
+  <dependency>/luascs//luascs
+  <dependency>/luaopenbus//luaopenbus
+  <dependency>/luasec//luasec
+  <target-os>linux:<library>unix//dl
+  <target-os>linux:<library>unix//pthread
+  <include>$(root)/src
+  <include>$(here)
+;
+
+obj busextension_launcher
+  : $(luaopenbus)/src/launcher.c
+    /lua//lua
+  : <define>OPENBUS_PROGNAME=\\\""busextension\\\""
+;
+
+exe busextension
+  : governanceextension.c
+    busextension_launcher
+    $(root)/src/extensionlibs.c
+    $(exe_deps)
+  : $(exe_requirements)
+    #Workaround to build with -j option.
+    <dependency>governanceextension.c
+  ;
+explicit busextension ;
+    
+install deps
+  : busextension
+  : <location>install
+    <install-dependencies>on
+    <install-type>LIB
+  ;
+explicit deps ;
+
+install stage
+  : busextension
+  : <location>install
+  ;

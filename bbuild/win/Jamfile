@@ -1,0 +1,9 @@
+lib wsock32
+  :
+  : <search>c:/Windows/System32
+  ;
+
+lib rpcrt4
+  :
+  : <search>c:/Windows/System32
+  ;
