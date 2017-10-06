@@ -22,6 +22,7 @@ local privatekey = assert(openbus.readKeyFile(privatekeypath),
 
 -- setup and start the ORB
 local orb = openbus.initORB()
+orb:settimeout(oil.time() + 10) -- workaround until oil 0.7-beta3
 
 -- get bus context manager
 local OpenBusContext = orb.OpenBusContext
