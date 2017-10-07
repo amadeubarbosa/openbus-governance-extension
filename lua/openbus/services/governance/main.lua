@@ -178,23 +178,10 @@ Options:
   local connection = OpenBusContext:createConnection(config.bushost, config.busport)
   OpenBusContext:setDefaultConnection(connection)
   connection:loginByCertificate(config.entity, privatekey)
-  connection.onInvalidLogin = function(conn, oldlogin)
-    while true do
-      local ok, ex = pcall(function()
-        log:action(msg.RetryLogInAfterInvalidLogin:tag{bushost=config.bushost,busport=config.busport,oldlogin=oldlogin.id})
-        conn:loginByCertificate(config.entity, privatekey)
-      end)
-      if ok or ex._repid == AlreadyLoggedIn then
-        break
-      end
-      log:exception(msg.FailedRetryingLogIn:tag{bushost=config.bushost,busport=config.busport,error=ex})
-      sleep(config.relogininterval)
-    end
-  end
   log:config(msg.ServiceConnectedToBus:tag{host=config.bushost, port=config.busport})
   
-  do -- server creation
-    local component = server.newSCS(
+  local component do -- server creation
+    component = server.newSCS(
       {
         orb = orb,
         name = ServiceName,
@@ -228,15 +215,33 @@ Options:
         end,
       })
     component.IComponent:startup()
-  
-    local offers = OpenBusContext:getOfferRegistry()
-    local ok, errmsg = pcall(offers.registerService, offers, component.IComponent, {})
-    if (not ok) then
-      ServiceFailure({
-        message = msg.UnableToRegisterService:tag({
-          error = errmsg
+    -- register service offer
+    local registerService = function() 
+      local offers = OpenBusContext:getOfferRegistry()
+      local ok, errmsg = pcall(offers.registerService, offers, component.IComponent, {})
+      if (not ok) then
+        ServiceFailure({
+          message = msg.UnableToRegisterService:tag({
+            error = errmsg
+          })
         })
-      })
+      end
+    end
+    registerService()
+    -- callback to retry the login and register service again
+    connection.onInvalidLogin = function(conn, oldlogin)
+      while true do
+        local ok, ex = pcall(function()
+          log:action(msg.RetryLogInAfterInvalidLogin:tag{bushost=config.bushost,busport=config.busport,oldlogin=oldlogin.id})
+          conn:loginByCertificate(config.entity, privatekey)
+          registerService()
+        end)
+        if ok or ex._repid == AlreadyLoggedIn then
+          break
+        end
+        log:exception(msg.FailedRetryingLogIn:tag{bushost=config.bushost,busport=config.busport,error=ex})
+        sleep(config.relogininterval)
+      end
     end
   end
   
