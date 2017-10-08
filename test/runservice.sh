@@ -1,7 +1,8 @@
 #!/bin/bash
 
 mode=$1
-busport=$2
+bushost=$2
+busport=$3
 
 LUA_PATH="${OPENBUS_GOVERNANCE_TEST}/../lua/?.lua;${OPENBUS_GOVERNANCE_TEST}/../lua/?.luad;${OPENBUS_GOVERNANCE_TEST}/?.lua;;"
 service="env LUA_PATH=$LUA_PATH ${OPENBUS_GOVERNANCE_HOME}/bin/busextension"
@@ -14,11 +15,13 @@ elif [[ "$mode" != "RELEASE" ]]; then
 fi
 
 export GOVERNANCE_CONFIG=$OPENBUS_TEMP/governance.cfg
-echo "busport = $busport"                             > $GOVERNANCE_CONFIG
+echo "bushost = \"$bushost\""                         > $GOVERNANCE_CONFIG
+echo "busport = $busport"                            >> $GOVERNANCE_CONFIG
 echo "privatekey = \"$OPENBUS_TEMP/governance.key\"" >> $GOVERNANCE_CONFIG
 echo "database = \"$OPENBUS_TEMP/governance.db\""    >> $GOVERNANCE_CONFIG
+echo "logfile = \"$OPENBUS_TEMP/governance.log\""    >> $GOVERNANCE_CONFIG
 
-$service -configs $GOVERNANCE_CONFIG 2>&1 &
+$service -configs $GOVERNANCE_CONFIG 2>&1 > $OPENBUS_TEMP/governance.out &
 pid="$!"
 trap "kill $pid > /dev/null 2>&1" 0
 

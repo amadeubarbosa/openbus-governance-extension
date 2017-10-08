@@ -1,6 +1,5 @@
 #!/bin/bash
 
-BASEPATH=$(dirname $0)
-export LUA_PATH="$BASEPATH/../lua/?.lua;;"
+export LUA_PATH="../lua/?.lua;;"
 
-${OPENBUS_SDKLUA_HOME}/bin/busconsole $BASEPATH/openbus/test/services/governance/Database.lua $@
+${OPENBUS_SDKLUA_HOME}/bin/busconsole openbus/test/services/governance/Database.lua $@
