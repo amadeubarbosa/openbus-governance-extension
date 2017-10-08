@@ -1,0 +1,35 @@
+Category {
+  id = "OpenBusServices",
+  name = "OpenBus Services Test",
+}
+
+local entity = "GovernanceExtensionService"
+
+Entity {
+  id = entity,
+  category = "OpenBusServices",
+  name = "Entity for Governance Extension Service",
+}
+
+Certificate {
+  id = entity,
+  certificate = "governance.crt",
+}
+
+local types = {
+  "IDL:tecgraf/openbus/services/governance/v1_0/ContractRegistry:1.0",
+  "IDL:tecgraf/openbus/services/governance/v1_0/ConsumerRegistry:1.0",
+  "IDL:tecgraf/openbus/services/governance/v1_0/ProviderRegistry:1.0",
+  "IDL:tecgraf/openbus/services/governance/v1_0/IntegrationRegistry:1.0",
+}
+
+for _, interface in ipairs(types) do 
+  Interface {
+    id = interface
+  }
+end 
+
+Grant {
+  id = entity,
+  interfaces = types 
+}
