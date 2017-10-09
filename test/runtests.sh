@@ -14,9 +14,9 @@ fi
 
 TEST_NAME='OpenBus Governance Extension Suite'
 
-TEST_PRELUDE='package.path=package.path..";../lua/?.lua;../lua/?.luad;./?.lua;"'
+TEST_PRELUDE='package.path=package.path..";../lua/?.lua;../lua/?.luad"'
 
-TEST_RUNNER="package.path=package.path..';./?.lua'
+TEST_RUNNER="package.path=package.path..';./?.lua;'
 local suite = require('openbus.test.Suite')
 local Runner = require('loop.test.Results')
 local path = {}

@@ -61,7 +61,7 @@ echo "Running service tests..."
 source runtests.sh || exit 1
 
 echo "Terminating service..."
-$runconsole ${OPENBUS_GOVERNANCE_TEST}/shutdown.lua -configs $GOVERNANCE_CONFIG
+$runconsole ${OPENBUS_GOVERNANCE_TEST}/shutdown.lua $GOVERNANCE_CONFIG
 
 echo "Cleaning up bus governance data..."
 $runadmin $bushost $busport --undo-script=${OPENBUS_GOVERNANCE_TEST}/service.adm || exit 1
