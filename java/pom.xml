@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>br.puc-rio.tecgraf.openbus</groupId>
   <artifactId>openbus-governance-service</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
 
   <name>OpenBus - Governance Service IDLs</name>
@@ -13,14 +13,14 @@
     <jacorb.version>3.8</jacorb.version>
     <idlj.version>1.2.2</idlj.version>
     <nexus.url>http://maven.tecgraf.puc-rio.br:8081/nexus/content</nexus.url>
-    <scm.baseurl></scm.baseurl>
+    <scm.baseurl />
   </properties>
 
   <scm>
     <connection>scm:git:https://git.tecgraf.puc-rio.br/openbus/openbus-governance-extension.git</connection>
     <developerConnection>scm:git:https://git.tecgraf.puc-rio.br/openbus/openbus-governance-extension.git</developerConnection>
     <url>https://git.tecgraf.puc-rio.br/openbus/openbus-governance-extension</url>
-    <tag>HEAD</tag>
+    <tag>01_00_00</tag>
   </scm>
 
 
