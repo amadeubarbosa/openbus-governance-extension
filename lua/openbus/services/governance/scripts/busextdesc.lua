@@ -105,6 +105,17 @@ local service = memoize(
   end,
   "kv")
 
+local stringfycontracts = function(list)
+  local result = ""
+  for i, contract in ipairs(list) do
+    result = result.. contract:_get_name()
+    if i < #list then
+      result = result .. ","
+    end
+  end
+  return result
+end
+
 local Definitions = {
   {
     tag = "Contract",
@@ -231,9 +242,12 @@ local Definitions = {
       for _, integration in ipairs(result) do
         if integration:_get_consumer():_get_name() == consumer_name and
           integration:_get_provider():_get_name() == provider_name then
+          local current = integration:_get_contracts()
           local comparison = function(c1, c2) return c1:_get_name() == c2:_get_name() end
-          local integrationcontracts = table.concat(table.sort(integration:_get_contracts(), comparison), ",")
-          local givencontracts = table.concat(table.sort(contracts, comparison, ","))
+          table.sort(current, comparison)
+          local integrationcontracts = stringfycontracts(current)
+          table.sort(contracts, comparison)
+          local givencontracts = table.concat(contracts, ",")
           if givencontracts == integrationcontracts then
             log:warning(msg.UpdatingActivattionFieldOfExistentIntegration:tag{consumer=consumer:_get_name(), provider=provider:_get_name(), id=integration:_get_id()})
             -- only force the update the activated field
@@ -255,9 +269,12 @@ local Definitions = {
       for _, integration in ipairs(result) do
         if integration:_get_consumer():_get_name() == consumer and
           integration:_get_provider():_get_name() == provider then
+          local current = integration:_get_contracts()
           local comparison = function(c1, c2) return c1:_get_name() == c2:_get_name() end
-          local integrationcontracts = table.concat(table.sort(integration:_get_contracts(), comparison), ",")
-          local givencontracts = table.concat(table.sort(contracts, comparison, ","))
+          table.sort(current, comparison)
+          local integrationcontracts = stringfycontracts(current)
+          table.sort(contracts, comparison)
+          local givencontracts = table.concat(contracts, ",")
           if givencontracts == integrationcontracts then
             service[IntegrationRegistry]:remove(integration:_get_id())
             return
