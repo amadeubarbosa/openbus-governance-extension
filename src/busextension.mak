@@ -117,10 +117,14 @@ ifeq ($(findstring $(TEC_SYSNAME), Win32 Win64), )
       LIBS:= 
     endif
   else
-    ifneq "$(TEC_SYSNAME)" "Darwin"
+    ifeq ($(findstring $(TEC_SYSNAME), MacOS, Darwin), )
       LIBS+= uuid
     endif
   endif
+endif
+
+ifneq ($(findstring $(TEC_SYSNAME), MacOS, Darwin), )
+  LIBS+= iconv
 endif
 
 ifneq ($(findstring $(TEC_SYSNAME), Win32 Win64), )
