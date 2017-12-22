@@ -1,6 +1,9 @@
 local oil     = require "oil"
 local oillog  = require "oil.verbose"
 
+local CharsetContext = require("oil.corba.giop.CharsetContext")
+local CORBACharsets = CharsetContext.known
+
 local openbus = require "openbus"
 local oo      = require "openbus.util.oo"
 local log     = require "openbus.util.logger"
@@ -55,7 +58,9 @@ return function(...)
         noipaddress = false,
         alternateaddr = {},
         relogininterval = 5,
-        
+
+        nativecharset = "",
+
         help = false,
         version = false,
         _alias = {
@@ -96,7 +101,9 @@ Options:
   -noipaddress                prevent to use IP address on IOR references (default: disabled)
   -alternateaddr <host:port>  optional network address to be included on IOR reference (default: none)
   -relogininterval <number>   interval in seconds to retry the login on bus after a failure (default: 5)
-  
+
+  -nativecharset <name>       charset encoding will be used to negotiate automatic codeset conversion
+
   -configs <path>             path to additional configuration file (default: governance.cfg or GOVERNANCE_CONFIG env variable)
 
   -h, -help                   show this help message
@@ -157,11 +164,31 @@ Options:
       objrefaddr.additional = additional
     end
   
+    -- validate charsets supported
+    local nativecharset = config.nativecharset:lower()
+    if nativecharset ~= "" then
+      if not CORBACharsets[nativecharset] then
+        local list = {}
+        for name in pairs(CORBACharsets) do
+          if type(name) == "string" then
+            list[#list+1] = name
+          end
+        end
+        log:misconfig(msg.CharsetNotSupported:tag{supported=list, parameter=nativecharset})
+        return 1
+      else
+        log:config(msg.NativeCharsetCodeSetConfigured:tag{charset=nativecharset})
+      end
+    else
+      nativecharset = nil
+    end
+
     -- CORBA ORB activated with OpenBus protocol
     orb = openbus.initORB{
       host = config.host,
       port = config.port,
       objrefaddr = objrefaddr,
+      charset = nativecharset,
     }
   
     log:config(msg.ServiceListeningAddress:tag{host=orb.host,port=orb.port})
