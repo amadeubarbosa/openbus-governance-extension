@@ -10,7 +10,7 @@
 
   <properties>
     <java.version>1.8</java.version>
-    <jacorb.version>3.8</jacorb.version>
+    <jacorb.version>3.9</jacorb.version>
     <idlj.version>1.2.2</idlj.version>
     <nexus.url>http://maven.tecgraf.puc-rio.br:8081/nexus/content</nexus.url>
     <scm.baseurl />
