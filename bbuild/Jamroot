@@ -192,6 +192,7 @@ using idl2lua : $(lua) ;
 make $(service)/parsed.lua 
   : $(root)/idl/governance-extension.idl
   : idl2lua.compile
+  : <dependency>/lua//stage
   ;
 
 local exe_deps = 
